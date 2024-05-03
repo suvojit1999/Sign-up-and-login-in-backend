@@ -1,0 +1,122 @@
+step 1: start npm project
+1. start using npm init -y
+2. then install express npm i express
+3. edit package.json, insert "type" : "module"
+4. create main.js, then start a server. get the hallow world code from 'express getting started' website.
+5. start nodemon using   nodemon ./main.js
+
+
+step 2: create router
+1. make a sub folder called modules
+2. create a file named Auth.js
+3. copy code from express website "express.router"
+3. change require to import from
+5. change "module.exports = router" to "export default router" in auth.js
+
+
+step 3: connet with mongo db
+1. install mongoose using npm i mongoose
+2. open mongodb atlas, create claster, create database, collection
+3. copy the link from atlas to connect to database and also remember user and password
+4. store the username , password , url in variables
+5. import mongoose
+6. use mongoose.connect(URI) to connect to database
+7. you can also add .then(()=>{
+                        console.log("connection successful")
+                    }).catch((err)=>{
+                        console.log("error:", err)
+                    })
+
+8. you can just move that whole connection part in a new fie too if you want (i did that, it is better), then just import it when ever you will need it , like in main.js or auth.js, just use import('../filename'), then you will avb able to call userdata collection whenever you want.
+9. import('../filename') in Auth.js
+
+step 4: use .env file
+1. install dotenv by npm i dotenv
+2. make a .env file
+3. import dot env by using import 'dotenv/config'
+4. write user and password under .env file
+5. now you can access the data under user and password using    const user = process.env.user
+                                                                const password = process.env.password
+6. now you can use those inside your url by using template literals
+
+
+step 5: create an user schema
+1. make a sub folder called Model, create a file under it called userSchema.js
+2. import mongoose in it
+3. see how to write user schema from mongoose website, here is an example
+    const userSchema = new mongoose.Schema({
+        name: {type: String, required:true},
+        pnumber: {type: Number},
+        date: { type: Date, default: Date.now }
+      });
+
+4. then tell mongoose to store each schema under the collection you created "users", but type "user" in the code, then export it like how routers are exported
+  const userdata = mongoose.model('user', userSchema)
+  export default userdata
+
+5. import this    import userdata from './model/userSchema.js'  in the main.js and auth.js
+
+
+step 6: sending request
+1. open postman
+2. you can send post request to your server , but it will be in json format
+3. your express app doesn't understand json, so use a middleware app.use(express.json()) before importing auth router. this code will parse the incoming json data i.e. req.body into a javascript object for express to understand. (a middleware runs before a mentioned task/program, then the program runs)
+4. then again use res.json({message: req.body}) to get a response in postman terminal, or otherwise it will keep buffering if it doesn't get a response. Response is usually a js object, so by using res.json makes the response into a json format, which clint side postman terminal can understand.
+
+step 7: check the send data
+1. store the data from post request in some variables like this const name = req.body.name (2nd name is from our userSchema) or  just use    const {name, email, pnumber, date} = req.body.
+2. import('../DB/conn.js')      import userdata from '../model/userSchema.js' in auth.js and now you can call data from database by using the default export name (userdata)
+3. check if both the required field are filled or not, if not then return a response. adding return means the process will stop there and not go any further.
+4. check if the email already exists or nut by using userdata.findOne({ email: email })
+5. use .then and .catch conditions as these returns promises , inside the .then() part if user exists then return a error msg   if (userExist) { return res.json({ error: "user already exists" }) }, otherwise proceed under .then() part.
+6. add and save data to the database by using this       
+        const Newuserdata = new userdata({ name, email, pnumber, date })
+        Newuserdata.save()
+
+7. again inside .then() write the new user registered message as response , then in .catch() add error message.
+
+
+step 8: encrypt password
+1. so i forgot to put a slot for password in the userSchema, so i will just encrypt the pnumber here
+2. do      npm i bcryptjs
+2. use import bcrypt from "bcryptjs"  in auth.js
+3. const hashedPassword = await bcrypt.hash(pnumber, 12);     use this to convert the password into an encrypt password
+4. then use that to store password into database    
+        const Newuserdata = new userdata({ name, email, pnumber: hashedPassword, date })
+        Newuserdata.save()
+
+
+step 8: get data from login and check and login using async await
+1. get data from clint side by    const {email , pnumber} = req.body
+2. check if both email and pnumber are entered or not, if not then return error
+3. then first try to get the data from the database which matches the same email 
+        const accountConfirmation = await userdata.findOne({ email: email })
+
+4. if it is null, then return error as a response
+5. then again check if the password is matching or not    
+        const passwordConfirmation = await bcrypt.compare(pnumber, accountConfirmation.pnumber)
+
+6. if it is false, then return error
+7. now if both of the abover conditions are okay then simply send response "successfully logged in"
+
+
+
+
+
+
+
+
+example of postman requests:
+
+post request server url:          sent data in json format:
+
+ http://localhost:3000/signup    {
+                                    "name": "suvojit",
+                                    "email": "suvo2@gml.com",
+                                    "pnumber": "123456789"
+                                }
+
+http://localhost:3000/signin    {
+                                    "email" : "suvo2@gml.com",
+                                    "pnumber" : "123456789"
+                                }
